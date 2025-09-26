@@ -1,6 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/models.dart';
+import '../services/image_helper.dart';
+import 'package:uuid/uuid.dart';
 
 class AddUserPage extends StatefulWidget {
   final List<User> users;
@@ -16,13 +20,22 @@ class _AddUserPageState extends State<AddUserPage> {
   final nameC = TextEditingController();
   final dateC = TextEditingController();
   final teethC = TextEditingController();
-  final illnessC = TextEditingController(); // renamed placeholder
+  final illnessC = TextEditingController();
   final whatWasDoneC = TextEditingController();
   final totalC = TextEditingController();
   final paidC = TextEditingController();
   final remC = TextEditingController();
 
   User? selectedUser;
+  final List<Uint8List> _rawImages = [];
+
+  Future<void> _pickImages() async {
+    final picked = await ImagePicker().pickMultiImage();
+    for (final xFile in picked) {
+      _rawImages.add(await xFile.readAsBytes());
+    }
+    setState(() {});
+  }
 
   @override
   void initState() {
@@ -44,7 +57,6 @@ class _AddUserPageState extends State<AddUserPage> {
     super.dispose();
   }
 
-  /* ---------------- helpers ---------------- */
   void _updateVisitCount() {
     if (mounted) setState(() {});
   }
@@ -80,11 +92,21 @@ class _AddUserPageState extends State<AddUserPage> {
     return p <= t;
   }
 
-  void _save() {
+  void _save() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
     if (!_step1Pass()) return;
     if (!_step2Pass()) return;
+
+    final userId = selectedUser?.id ?? const Uuid().v4();
+    final visitIdx = (selectedUser?.visits.length ?? 0) + 1;
+
+    final List<String> savedNames = [];
+    for (final raw in _rawImages) {
+      final n = await ImageHelper.save(raw,
+          userId: userId, visitIndex: visitIdx);
+      savedNames.add(n);
+    }
 
     final visit = Visit(
       date: dateC.text,
@@ -94,6 +116,7 @@ class _AddUserPageState extends State<AddUserPage> {
       totalUSD: double.parse(totalC.text.trim()),
       paidUSD: double.parse(paidC.text.trim()),
       remainingUSD: double.parse(remC.text.trim()),
+      imageNames: savedNames,
     );
 
     widget.onSave(visit, nameC.text.trim(), selectedUser);
@@ -107,83 +130,137 @@ class _AddUserPageState extends State<AddUserPage> {
       totalC.clear();
       paidC.clear();
       remC.clear();
+      _rawImages.clear();
       dateC.text = DateTime.now().toIso8601String().split('T')[0];
       selectedUser = null;
       _updateVisitCount();
     }
   }
 
-  /* ---------------- UI ---------------- */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Add User', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('New Patient Data', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              _section('Personal Information', [
-                _textField(nameC, 'Name *', Icons.person_outline,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
-                const SizedBox(height: 8),
-                _dateWithVisitCounter(),
-                const SizedBox(height: 8),
-                _textField(teethC, 'Teeth Illness *', Icons.medical_services, maxLines: 5,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
-                _textField(illnessC, 'Other Illnesses *', Icons.local_hospital, maxLines: 5,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
-                _textField(whatWasDoneC, 'Treatment Description *', Icons.healing, maxLines: 5,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
-              ]),
-              const SizedBox(height: 8),
-              _section('Financial Information', [
-                _textField(totalC, 'Total USD *', Icons.account_balance_wallet,
-                    isNumber: true,
-                    onChanged: (_) => _calcRem(),
-                    validator: _totalValidator),
-                _textField(paidC, 'Paid USD *', Icons.check_circle,
-                    isNumber: true,
-                    onChanged: (_) => _calcRem(),
-                    validator: _paidValidator),
-                _textField(remC, 'Remaining USD', Icons.pending,
-                    enabled: false, labelColor: Colors.orange),
-              ]),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  onPressed: _save,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isTablet = constraints.maxWidth >= 600;
+            final hPadding = isTablet ? 32.0 : 16.0;
+            final vPadding = isTablet ? 24.0 : 16.0;
+            final fieldSpacing = isTablet ? 20.0 : 16.0;
+            final maxFieldWidth = isTablet ? 600.0 : double.infinity;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: vPadding),
+              child: Center(
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: maxFieldWidth),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _section('Personal Information', [
+                        _textField(nameC, 'Name *', Icons.person_outline,
+                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
+                        SizedBox(height: fieldSpacing),
+                        _dateWithVisitCounter(),
+                        SizedBox(height: fieldSpacing),
+                        _textField(teethC, 'Teeth Illness *', Icons.medical_services, maxLines: 5,
+                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
+                        _textField(illnessC, 'Other Illnesses *', Icons.local_hospital, maxLines: 5,
+                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
+                        _textField(whatWasDoneC, 'Treatment Description *', Icons.healing, maxLines: 5,
+                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
+                      ]),
+                      SizedBox(height: fieldSpacing),
+                      _section('Financial Information', [
+                        _textField(totalC, 'Total USD *', Icons.account_balance_wallet,
+                            isNumber: true,
+                            onChanged: (_) => _calcRem(),
+                            validator: _totalValidator),
+                        _textField(paidC, 'Paid USD *', Icons.check_circle,
+                            isNumber: true,
+                            onChanged: (_) => _calcRem(),
+                            validator: _paidValidator),
+                        _textField(remC, 'Remaining USD', Icons.pending,
+                            enabled: false, labelColor: Colors.orange),
+                      ]),
+                      SizedBox(height: fieldSpacing),
+                      _section('Photos (optional)', [
+                        if (_rawImages.isNotEmpty) _imageThumbnails(),
+                        _addPhotoButton(),
+                      ]),
+                      SizedBox(height: fieldSpacing * 1.5),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.save),
+                          label: const Text('Save as a New Patient', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          onPressed: _save,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: const Color.fromARGB(255, 60, 148, 232),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: fieldSpacing),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.add_circle),
+                          label: const Text('Add a visit for Existing Patient'),
+                          onPressed: _selectExistingUser,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.add_circle),
-                  label: const Text('Add another visit'),
-                  onPressed: _selectExistingUser,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  /* ----------------  WIDGETS  ---------------- */
+  Widget _addPhotoButton() => OutlinedButton.icon(
+        icon: const Icon(Icons.add_a_photo),
+        label: const Text('Add photo(s)'),
+        onPressed: _pickImages,
+      );
+
+  Widget _imageThumbnails() => SizedBox(
+        height: 100,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: _rawImages.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (_, i) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                      image: MemoryImage(_rawImages[i]), fit: BoxFit.cover),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                onPressed: () => setState(() => _rawImages.removeAt(i)),
+              ),
+            ],
+          ),
+        ),
+      );
+
   Widget _dateWithVisitCounter() {
     return Column(
       children: [
@@ -203,13 +280,13 @@ class _AddUserPageState extends State<AddUserPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade300, Colors.indigo],
+          colors: [const Color.fromARGB(255, 121, 203, 182), const Color.fromARGB(255, 63, 134, 181)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.indigo.withOpacity(.3),
+            color: Colors.indigo.withValues(alpha: .3),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -301,7 +378,7 @@ class _AddUserPageState extends State<AddUserPage> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: labelColor ?? Colors.grey.shade600),
-          prefixIcon: Icon(icon, color: enabled ? const Color(0xFF6366F1) : Colors.grey),
+          prefixIcon: Icon(icon, color: enabled ? const Color.fromARGB(255, 3, 158, 255) : Colors.grey),
           errorStyle: const TextStyle(color: Colors.red),
         ),
       ),
@@ -375,8 +452,7 @@ class _AddUserPageState extends State<AddUserPage> {
                           },
                         ),
                 ),
-              ]),
-            ),
+              ])),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel'))
             ],

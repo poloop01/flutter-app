@@ -4,12 +4,20 @@ import 'package:path_provider/path_provider.dart';
 import '../models/models.dart';
 
 class Storage {
-  static const String _fileName = 'users.json';
+  static late final Directory jsonDir;
+  static late final Directory imgDir;
   static late final File _file;
 
   static Future<void> init() async {
-    final dir = await getApplicationDocumentsDirectory();
-    _file = File('${dir.path}/$_fileName');
+    final root = await getApplicationDocumentsDirectory();
+
+    jsonDir = Directory('${root.path}/data');
+    imgDir  = Directory('${root.path}/images');
+
+    await jsonDir.create(recursive: true);
+    await imgDir.create(recursive: true);
+
+    _file = File('${jsonDir.path}/users.json');
   }
 
   static Future<List<User>> loadUsers() async {
@@ -24,5 +32,5 @@ class Storage {
     final jsonList = users.map((u) => u.toJson()).toList();
     await _file.writeAsString(jsonEncode(jsonList));
   }
-   static File get jsonFile => _file; 
+    static File get jsonFile => _file;
 }

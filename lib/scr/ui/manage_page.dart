@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Manage landing page with **same design language** as AppointmentPage.
+/// Four big gradient buttons: New / Find / Modify / Remove
 class ManagePage extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onSearch;
@@ -19,39 +21,58 @@ class ManagePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Manage', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _actionButton(context, 'Add User', Icons.person_add, Colors.teal, onAdd),
-            const SizedBox(height: 20),
-            _actionButton(context, 'Search Users', Icons.search, Colors.indigo, onSearch),
-            const SizedBox(height: 20),
-            _actionButton(context, 'Edit Users', Icons.edit, Colors.orange, onEdit),
-            const SizedBox(height: 20),
-            _actionButton(context, 'Delete Users', Icons.delete, Colors.red, onDelete),
-          ],
+        title: const Text(
+          'Manage Patient Data',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 600;
+          return SingleChildScrollView(
+            child: Center(
+              child: Container(
+                width: isWide ? 600 : double.infinity,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _actionButton(
+                        context, 'New Patient Data', Icons.person_add_alt_1, Colors.teal, onAdd),
+                    const SizedBox(height: 20),
+                    _actionButton(
+                        context, 'Find Patient Data', Icons.search, Colors.deepPurpleAccent, onSearch),
+                    const SizedBox(height: 20),
+                    _actionButton(
+                        context, 'Modify Patient Data', Icons.edit_note, Colors.orange, onEdit),
+                    const SizedBox(height: 20),
+                    _actionButton(
+                        context, 'Remove Patient Data', Icons.person_remove, Colors.red, onDelete),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _actionButton(BuildContext ctx, String text, IconData icon, Color color, VoidCallback onTap) {
+  Widget _actionButton(
+      BuildContext ctx, String text, IconData icon, Color color, VoidCallback onTap) {
     return Container(
       width: double.infinity,
       height: 80,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
-          colors: [color.withOpacity(.85), color],
+          colors: [color.withValues(alpha: .85), color],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(.3),
+            color: color.withValues(alpha: .3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
