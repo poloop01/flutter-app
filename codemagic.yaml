@@ -7,12 +7,17 @@ workflows:
     environment:
       flutter: stable
 
-scripts:
-  ...
-  - flutter build ios --release --no-codesign
-  - mkdir -p build/ios/iphoneos/Payload
-  - cp -R build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-  - cd build/ios/iphoneos && zip -r app-release.ipa Payload
-  - ls -lh app-release.ipa          # <- proves it is there
-artifacts:
-  - build/ios/iphoneos/app-release.ipa
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build iOS unsigned
+        script: flutter build ios --release --no-codesign
+      - name: Package IPA
+        script: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos && zip -r app-release.ipa Payload
+          ls -lh app-release.ipa    # confirm ipa exists
+
+    artifacts:
+      - build/ios/iphoneos/app-release.ipa
