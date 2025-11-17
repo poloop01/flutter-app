@@ -21,6 +21,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
   /* ---- controllers ---- */
   late TextEditingController nameC;
   late TextEditingController dateC;
+  late TextEditingController phoneC; // ← NEW
   late TextEditingController startC;
   late TextEditingController endC;
   late TextEditingController reasonC;
@@ -33,6 +34,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     super.initState();
     nameC = TextEditingController(text: widget.appointment.name);
     dateC = TextEditingController(text: widget.appointment.date);
+    phoneC = TextEditingController(text: widget.appointment.phone); // ← NEW
     startC = TextEditingController(text: widget.appointment.startTime);
     endC = TextEditingController(text: widget.appointment.endTime);
     reasonC = TextEditingController(text: widget.appointment.reason);
@@ -43,16 +45,15 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
   void dispose() {
     nameC.dispose();
     dateC.dispose();
+    phoneC.dispose(); // ← NEW
     startC.dispose();
     endC.dispose();
     reasonC.dispose();
     super.dispose();
   }
 
-  /* ---------------------------------------------------- */
-  /* -------------------- date picker ------------------- */
-  /* ---------------------------------------------------- */
-  void _pickDate() async {
+  /* ---------- date picker ---------- */
+  Future<void> _pickDate() async {
     final initial = DateTime.tryParse(widget.appointment.date) ?? DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -66,10 +67,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     }
   }
 
-  /* ---------------------------------------------------- */
-  /* -------------------- time pickers ------------------ */
-  /* ---------------------------------------------------- */
-  void _pickTime(bool isStart) async {
+  /* ---------- time pickers ---------- */
+  Future<void> _pickTime(bool isStart) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
@@ -79,20 +78,11 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
       ),
     );
     if (picked == null) return;
-
     final formatted = picked.format(context);
-    setState(() {
-      if (isStart) {
-        startC.text = formatted;
-      } else {
-        endC.text = formatted;
-      }
-    });
+    setState(() => isStart ? startC.text = formatted : endC.text = formatted);
   }
 
-  /* ---------------------------------------------------- */
-  /* ---------------- cool snack-bar -------------------- */
-  /* ---------------------------------------------------- */
+  /* ---------- cool snack-bar ---------- */
   void _showCoolSnackBar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -111,16 +101,15 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     );
   }
 
-  /* ---------------------------------------------------- */
-  /* ---------------------- save ------------------------ */
-  /* ---------------------------------------------------- */
-  void _save() {
+  /* ---------- save ---------- */
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final updated = Appointment(
       id: widget.appointment.id,
       name: nameC.text.trim(),
       date: dateC.text.trim(),
+      phone: phoneC.text.trim(), // ← NEW
       startTime: startC.text.trim(),
       endTime: endC.text.trim(),
       reason: reasonC.text.trim(),
@@ -128,17 +117,11 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     );
 
     widget.onSave(updated);
-
-    /* ---- show the nice bar ---- */
     _showCoolSnackBar('Appointment updated!');
-
-    /* ---- leave the page ---- */
     Navigator.of(context).pop();
   }
 
-  /* ---------------------------------------------------- */
-  /* -------------------- build ------------------------- */
-  /* ---------------------------------------------------- */
+  /* ---------- build ---------- */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,56 +148,43 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _field(nameC, 'Patient Name', Icons.person,
+                      /* ----- name (ONLY required) ----- */
+                      _field(nameC, 'Patient Name *', Icons.person,
                           validator: (v) =>
                               v == null || v.trim().isEmpty ? 'Required' : null),
                       const SizedBox(height: 16),
 
-                      /* --------------- date --------------- */
-                      _field(dateC, 'Date', Icons.calendar_today,
-                          readOnly: true,
-                          onTap: _pickDate,
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Required' : null),
+                      /* ----- date (optional) ----- */
+                      _pickField(dateC, 'Date', Icons.calendar_today, _pickDate),
                       const SizedBox(height: 16),
 
-                      /* --------------- time row ----------- */
+                      /* ----- phone (optional) ----- */
+                      _field(phoneC, 'Phone Number', Icons.phone_outlined),
+                      const SizedBox(height: 16),
+
+                      /* ----- time row (optional) ----- */
                       Row(
                         children: [
                           Expanded(
-                            child: _field(
-                              startC,
-                              'From',
-                              Icons.schedule,
-                              readOnly: true,
-                              onTap: () => _pickTime(true),
-                              validator: (v) =>
-                                  v == null || v.trim().isEmpty ? 'Required' : null,
-                            ),
+                            child: _pickField(
+                                startC, 'From', Icons.schedule, () => _pickTime(true)),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _field(
-                              endC,
-                              'To',
-                              Icons.schedule,
-                              readOnly: true,
-                              onTap: () => _pickTime(false),
-                              validator: (v) =>
-                                  v == null || v.trim().isEmpty ? 'Required' : null,
-                            ),
+                            child: _pickField(
+                                endC, 'To', Icons.schedule, () => _pickTime(false)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
 
-                      /* --------------- attendance --------- */
+                      /* ----- attendance ----- */
                       DropdownButtonFormField<bool>(
                         value: _attended,
                         decoration: InputDecoration(
                           labelText: 'Attendance',
-                          prefixIcon:
-                              const Icon(Icons.event_available, color: Color.fromARGB(255, 201, 116, 18)),
+                          prefixIcon: const Icon(Icons.event_available,
+                              color: Color.fromARGB(255, 201, 116, 18)),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12)),
                           filled: true,
@@ -230,26 +200,23 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      /* --------------- reason ------------- */
+                      /* ----- reason (optional) ----- */
                       _field(reasonC, 'Reason / Notes', Icons.short_text,
-                          maxLines: 4,
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Required' : null),
+                          maxLines: 4),
                       const SizedBox(height: 32),
 
-                      /* --------------- save button -------- */
+                      /* ----- save button ----- */
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
                           icon: const Icon(Icons.save),
                           label: const Text('Save Changes'),
                           onPressed: _save,
-                           style: ElevatedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  backgroundColor: const Color.fromARGB(255, 244, 136, 21),
-                                  foregroundColor: Colors.white,
-                                  ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: const Color.fromARGB(255, 244, 136, 21),
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ),
                     ],
@@ -263,20 +230,32 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     );
   }
 
-  /* ---------------------------------------------------- */
-  /* ------------------ reusable field ------------------ */
-  /* ---------------------------------------------------- */
+  /* ---------- reusable field ---------- */
   Widget _field(TextEditingController c, String label, IconData icon,
-      {int maxLines = 1,
-      bool readOnly = false,
-      VoidCallback? onTap,
-      String? Function(String?)? validator}) {
+      {int maxLines = 1, String? Function(String?)? validator}) {
     return TextFormField(
       controller: c,
-      readOnly: readOnly,
       maxLines: maxLines,
-      onTap: onTap,
       validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade600),
+        prefixIcon: Icon(icon, color: const Color.fromARGB(255, 201, 116, 18)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  /* ---------- reusable picker field ---------- */
+  Widget _pickField(
+      TextEditingController c, String label, IconData icon, VoidCallback onTap) {
+    return TextFormField(
+      controller: c,
+      readOnly: true,
+      onTap: onTap,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade600),

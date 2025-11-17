@@ -33,6 +33,16 @@ class ViewAppointmentPage extends StatelessWidget {
                     _field('Appointment Date', appointment.date, Icons.calendar_today),
                     const SizedBox(height: 16),
 
+                    /* --------------- phone -------------- */
+                    _field(
+                      'Phone',
+                      appointment.phone?.isNotEmpty == true
+                          ? appointment.phone!
+                          : '—',
+                      Icons.phone,
+                    ),
+                    const SizedBox(height: 16),
+
                     /* --------------- time slot ---------- */
                     _field(
                       'Time Slot',

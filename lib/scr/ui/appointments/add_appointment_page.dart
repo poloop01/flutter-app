@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/appointment.dart';
 
 class AddAppointmentPage extends StatefulWidget {
@@ -13,11 +12,11 @@ class AddAppointmentPage extends StatefulWidget {
 class _AddAppointmentPageState extends State<AddAppointmentPage> {
   final _formKey = GlobalKey<FormState>();
 
-  /* ---- controllers ---- */
-  final nameC = TextEditingController();
-  final dateC = TextEditingController();
-  final startC = TextEditingController();   // NEW
-  final endC = TextEditingController();     // NEW
+  final nameC   = TextEditingController();
+  final dateC   = TextEditingController();
+  final phoneC  = TextEditingController();
+  final startC  = TextEditingController();
+  final endC    = TextEditingController();
   final reasonC = TextEditingController();
 
   @override
@@ -30,16 +29,15 @@ class _AddAppointmentPageState extends State<AddAppointmentPage> {
   void dispose() {
     nameC.dispose();
     dateC.dispose();
+    phoneC.dispose();
     startC.dispose();
     endC.dispose();
     reasonC.dispose();
     super.dispose();
   }
 
-  /* ---------------------------------------------------- */
-  /* -------------------- date picker ------------------- */
-  /* ---------------------------------------------------- */
-  void _pickDate() async {
+  /* ---------- date picker ---------- */
+  Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -52,10 +50,8 @@ class _AddAppointmentPageState extends State<AddAppointmentPage> {
     }
   }
 
-  /* ---------------------------------------------------- */
-  /* -------------------- time pickers ------------------ */
-  /* ---------------------------------------------------- */
-  void _pickTime(bool isStart) async {
+  /* ---------- time pickers ---------- */
+  Future<void> _pickTime(bool isStart) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
@@ -65,29 +61,21 @@ class _AddAppointmentPageState extends State<AddAppointmentPage> {
       ),
     );
     if (picked == null) return;
-
-    final formatted = picked.format(context); // → "4:30 PM"
-    setState(() {
-      if (isStart) {
-        startC.text = formatted;
-      } else {
-        endC.text = formatted;
-      }
-    });
+    final formatted = picked.format(context);
+    setState(() => isStart ? startC.text = formatted : endC.text = formatted);
   }
 
-  /* ---------------------------------------------------- */
-  /* ---------------------- save ------------------------ */
-  /* ---------------------------------------------------- */
-  void _save() {
+  /* ---------- save ---------- */
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     widget.onSave(Appointment(
       name: nameC.text.trim(),
       date: dateC.text.trim(),
-      startTime: startC.text.trim(), // NEW
-      endTime: endC.text.trim(),     // NEW
+      startTime: startC.text.trim(),
+      endTime: endC.text.trim(),
       reason: reasonC.text.trim(),
+      phone: phoneC.text.trim(), // ← NEW
     ));
 
     if (mounted) {
@@ -108,7 +96,6 @@ class _AddAppointmentPageState extends State<AddAppointmentPage> {
         ),
       );
     }
-
     Navigator.pop(context);
   }
 
@@ -120,92 +107,83 @@ class _AddAppointmentPageState extends State<AddAppointmentPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          'Add Appointment',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Add Appointment',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isTablet = constraints.maxWidth >= 600;
-          final hPadding = isTablet ? 32.0 : 16.0;
-          final vPadding = isTablet ? 24.0 : 16.0;
-          final fieldSpacing = isTablet ? 20.0 : 16.0;
-          final maxFieldWidth = isTablet ? 600.0 : double.infinity;
+        builder: (_, c) {
+          final isTablet = c.maxWidth >= 600;
+          final hp = isTablet ? 32.0 : 16.0;
+          final vp = isTablet ? 24.0 : 16.0;
+          final fs = isTablet ? 20.0 : 16.0;
+          final maxW = isTablet ? 600.0 : double.infinity;
 
           return SingleChildScrollView(
-            padding:
-                EdgeInsets.symmetric(horizontal: hPadding, vertical: vPadding),
+            padding: EdgeInsets.symmetric(horizontal: hp, vertical: vp),
             child: Center(
               child: Container(
-                constraints: BoxConstraints(maxWidth: maxFieldWidth),
+                constraints: BoxConstraints(maxWidth: maxW),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _textField(nameC, 'Patient Name *', Icons.person_outline),
-                      SizedBox(height: fieldSpacing),
-
-                      /* --------------- date --------------- */
-                      _textField(
-                        dateC,
-                        'Date *',
-                        Icons.calendar_today,
-                        readOnly: true,
-                        onTap: _pickDate,
+                      /* ----- patient name (keyboard allowed) ----- */
+                      TextFormField(
+                        controller: nameC,
+                        validator: (v) =>
+                            v == null || v.trim().isEmpty ? 'Required' : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Patient Name *',
+                          prefixIcon:
+                              Icon(Icons.person_outline, color: Color.fromARGB(255, 3, 158, 255)),
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
                       ),
-                      SizedBox(height: fieldSpacing),
+                      SizedBox(height: fs),
 
-                      /* --------------- time row ----------- */
+                      /* ----- date (picker) ----- */
+                      _pickField(dateC, 'Date', Icons.calendar_today, _pickDate),
+                      SizedBox(height: fs),
+
+                      /* ----- phone (keyboard, optional) ----- */
+                      _textField(phoneC, 'Phone Number', Icons.phone_outlined),
+                      SizedBox(height: fs),
+
+                      /* ----- time row (pickers) ----- */
                       Row(
                         children: [
                           Expanded(
-                            child: _textField(
-                              startC,
-                              'From *',
-                              Icons.schedule,
-                              readOnly: true,
-                              onTap: () => _pickTime(true),
-                            ),
-                          ),
-                          SizedBox(width: 12),
+                              child: _pickField(startC, 'From', Icons.schedule,
+                                  () => _pickTime(true))),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: _textField(
-                              endC,
-                              'To *',
-                              Icons.schedule,
-                              readOnly: true,
-                              onTap: () => _pickTime(false),
-                            ),
-                          ),
+                              child: _pickField(endC, 'To', Icons.schedule,
+                                  () => _pickTime(false))),
                         ],
                       ),
-                      SizedBox(height: fieldSpacing),
+                      SizedBox(height: fs),
 
-                      /* --------------- reason ------------- */
-                      _textField(
-                        reasonC,
-                        'Reason / Notes *',
-                        Icons.notes,
-                        maxLines: 4,
-                      ),
-                      SizedBox(height: fieldSpacing * 1.5),
+                      /* ----- reason (keyboard allowed) ----- */
+                      _textField(reasonC, 'Reason / Notes', Icons.notes,
+                          maxLines: 4),
+                      SizedBox(height: fs * 1.5),
 
-                      /* --------------- save button -------- */
+                      /* ----- save button ----- */
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.save),
-                          label: const Text(
-                            'Save Appointment',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
+                          label: const Text('Save Appointment',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
                           onPressed: _save,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: const Color.fromARGB(255, 60, 148, 232),
+                            backgroundColor:
+                                const Color.fromARGB(255, 60, 148, 232),
                             foregroundColor: Colors.white,
                           ),
                         ),
@@ -221,30 +199,40 @@ class _AddAppointmentPageState extends State<AddAppointmentPage> {
     );
   }
 
-  /* ---------------------------------------------------- */
-  /* ------------------ reusable field ------------------ */
-  /* ---------------------------------------------------- */
+  /* ---------- editable field (keyboard) ---------- */
   Widget _textField(
     TextEditingController c,
     String label,
     IconData icon, {
-    bool enabled = true,
-    bool readOnly = false,
     int maxLines = 1,
-    VoidCallback? onTap,
   }) {
     return TextFormField(
       controller: c,
-      readOnly: readOnly,
-      enabled: enabled,
       maxLines: maxLines,
-      onTap: onTap,
-      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: enabled ? const Color.fromARGB(255, 3, 158, 255) : Colors.grey),
-        errorStyle: const TextStyle(color: Colors.red),
+        prefixIcon: Icon(icon, color: const Color.fromARGB(255, 3, 158, 255)),
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    );
+  }
+
+  /* ---------- read-only picker field ---------- */
+  Widget _pickField(
+    TextEditingController c,
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return TextFormField(
+      controller: c,
+      readOnly: true,
+      onTap: onTap,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color.fromARGB(255, 3, 158, 255)),
         border: const OutlineInputBorder(),
         filled: true,
         fillColor: Colors.white,

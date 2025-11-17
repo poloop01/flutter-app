@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/appointment.dart';
+import 'view_appointment_page.dart';
 
 class DeleteOnlyAppointmentPage extends StatefulWidget {
   final List<Appointment> appointments;
@@ -24,10 +25,31 @@ class _DeleteOnlyAppointmentPageState extends State<DeleteOnlyAppointmentPage> {
   bool isAttended(Appointment a) => a.attended;
   bool isExpired(Appointment a) =>
       !a.attended && a.date.compareTo(today) < 0;
+  bool isNotAttended(Appointment a) =>
+      !a.attended && a.date.compareTo(today) >= 0;
 
-  /* ---------------------------------------------------- */
-  /* ---------------- cool snack-bar -------------------- */
-  /* ---------------------------------------------------- */
+  /* -------------- confirmation dialog -------------- */
+  Future<bool?> _confirm(String title, String content) async =>
+      showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+
+  /* -------------- cool snack-bar -------------- */
   void _showCoolSnackBar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -47,24 +69,59 @@ class _DeleteOnlyAppointmentPageState extends State<DeleteOnlyAppointmentPage> {
   }
 
   /* -------------- bulk delete -------------- */
-  void _deleteAllAttended() {
+  Future<void> _deleteAllAttended() async {
     final toDelete = widget.appointments.where(isAttended).length;
     if (toDelete == 0) return;
+
+    final bool? ok = await _confirm(
+      'Confirm Delete All',
+      'Permanently delete $toDelete attended appointment(s)?',
+    );
+    if (ok != true) return;
+
     setState(() => widget.appointments.removeWhere(isAttended));
     _notifyParent();
     _showCoolSnackBar('$toDelete attended appointment(s) deleted');
   }
 
-  void _deleteAllExpired() {
+  Future<void> _deleteAllExpired() async {
     final toDelete = widget.appointments.where(isExpired).length;
     if (toDelete == 0) return;
+
+    final bool? ok = await _confirm(
+      'Confirm Delete All',
+      'Permanently delete $toDelete expired appointment(s)?',
+    );
+    if (ok != true) return;
+
     setState(() => widget.appointments.removeWhere(isExpired));
     _notifyParent();
     _showCoolSnackBar('$toDelete expired appointment(s) deleted');
   }
 
+  Future<void> _deleteAllNotAttended() async {
+    final toDelete = widget.appointments.where(isNotAttended).length;
+    if (toDelete == 0) return;
+
+    final bool? ok = await _confirm(
+      'Confirm Delete All',
+      'Permanently delete $toDelete not-attended appointment(s)?',
+    );
+    if (ok != true) return;
+
+    setState(() => widget.appointments.removeWhere(isNotAttended));
+    _notifyParent();
+    _showCoolSnackBar('$toDelete not-attended appointment(s) deleted');
+  }
+
   /* -------------- single delete -------------- */
-  void _deleteSingle(Appointment appt) {
+  Future<void> _deleteSingle(Appointment appt) async {
+    final bool? ok = await _confirm(
+      'Delete Appointment',
+      'Delete appointment for ${appt.name}?',
+    );
+    if (ok != true) return;
+
     setState(() => widget.appointments.remove(appt));
     _notifyParent();
     _showCoolSnackBar('${appt.name} deleted');
@@ -83,6 +140,7 @@ class _DeleteOnlyAppointmentPageState extends State<DeleteOnlyAppointmentPage> {
 
     final attendedList = filtered.where(isAttended).toList();
     final expiredList = filtered.where(isExpired).toList();
+    final notAttendedList = filtered.where(isNotAttended).toList();
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -161,6 +219,17 @@ class _DeleteOnlyAppointmentPageState extends State<DeleteOnlyAppointmentPage> {
                                 const SizedBox(height: 12),
                               ],
 
+                              /* --------------- NOT ATTENDED --------------- */
+                              if (notAttendedList.isNotEmpty) ...[
+                                _sectionHeader(
+                                  'Not Attended (${notAttendedList.length})',
+                                  Icons.event_note,
+                                  onDeleteAll: _deleteAllNotAttended,
+                                ),
+                                ...notAttendedList.map((a) => _card(a, _deleteSingle)),
+                                const SizedBox(height: 12),
+                              ],
+
                               /* --------------- EXPIRED ---------------- */
                               if (expiredList.isNotEmpty) ...[
                                 _sectionHeader(
@@ -206,45 +275,33 @@ class _DeleteOnlyAppointmentPageState extends State<DeleteOnlyAppointmentPage> {
   }
 
   Widget _card(Appointment appt, void Function(Appointment) onTapDelete) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+  return Card(
+    margin: const EdgeInsets.only(bottom: 8),
+    child: ListTile(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ViewAppointmentPage(appointment: appt),
           ),
-          child: Icon(Icons.delete, color: Colors.red.shade700, size: 24),
+        );
+      },
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
-        title: Text(appt.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('${appt.date}  •  ${appt.reason}'),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete, color: Colors.red),
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Delete Appointment'),
-              content: Text('Delete appointment for ${appt.name}?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onTapDelete(appt);
-                  },
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          ),
-        ),
+        child: Icon(Icons.delete, color: Colors.red.shade700, size: 24),
       ),
-    );
-  }
+      title: Text(appt.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text('${appt.date}  •  ${appt.reason}'),
+      trailing: IconButton(
+        icon: const Icon(Icons.delete, color: Colors.red),
+        onPressed: () => _deleteSingle(appt),
+      ),
+    ),
+  );
+}
 }

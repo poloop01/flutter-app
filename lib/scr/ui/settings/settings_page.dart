@@ -31,7 +31,7 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _jsonBtn(context, 'Open Users JSON', Colors.blue, const JsonViewerPage()),
+                // _jsonBtn(context, 'Open Users JSON', Colors.blue, const JsonViewerPage()),
                 const SizedBox(height: 20),
                 _jsonBtn(context, 'Open Appointments JSON', Colors.blue, const AppointmentJsonViewerPage()),
               ],

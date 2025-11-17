@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../models/models.dart';
+// import '../../models/patients.dart';
 import '../../models/appointment.dart';
 import '../appointments/all_appointments_page.dart';
 
 class HomePage extends StatelessWidget {
-  final List<User> users;
+  // final List<User> users;
   final List<Appointment> appointments;
 
   const HomePage({
     super.key,
-    required this.users,
+    // required this.users,
     required this.appointments,
   });
 
@@ -86,13 +86,13 @@ class HomePage extends StatelessWidget {
           const SizedBox(height: 24),
 
           /* ------------- patients ------------- */
-          _buildStatRow(
-            icon: Icons.people,
-            label: 'Patients',
-            value: users.length.toString(),
-            color: Colors.blue.shade600,
-          ),
-          const SizedBox(height: 16),
+          // _buildStatRow(
+          //   icon: Icons.people,
+          //   label: 'Patients',
+          //   // value: users.length.toString(),
+          //   color: Colors.blue.shade600,
+          // ),
+          // const SizedBox(height: 16),
 
           /* ------------- appointment counts --- */
           _buildStatRow(

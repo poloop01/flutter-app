@@ -30,13 +30,14 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
   bool isToday(Appointment a)    => a.date == today && !a.attended;
   bool isUpcoming(Appointment a) => a.date.compareTo(today) > 0 && !a.attended;
   bool isExpired(Appointment a)  => a.date.compareTo(today) < 0 && !a.attended;
+  bool isAttended(Appointment a) => a.attended;
 
   /* --------------------------------------------------------------- */
   /* -------------------- JSON persistence ------------------------- */
   /* --------------------------------------------------------------- */
   Future<File> get _localFile async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/appointments.json');
+    final dir = await getExternalStorageDirectory();
+    return File('${dir!.path}/appointments.json');
   }
 
   Future<void> saveAppointments() async {
@@ -67,9 +68,28 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
   }
 
   /* --------------------------------------------------------------- */
-  /* -------------------- mark single ------------------------------ */
+  /* -------------------- mark single with confirm ---------------- */
   /* --------------------------------------------------------------- */
-  void _markAttended(Appointment a) {
+  Future<void> _markAttendedWithConfirm(Appointment a) async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Mark as Attended?'),
+        content: Text('Mark "${a.name}" as attended?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check, size: 16),
+            label: const Text('Attend'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
     final updated = a.copyWith(attended: true);
     setState(() {
       widget.appointments.remove(a);
@@ -117,23 +137,23 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
   }
 
   /* --------------------------------------------------------------- */
-  /* ---------------- delete all expired ------------------------- */
+  /* ---------------- mark all expired --------------------------- */
   /* --------------------------------------------------------------- */
-  Future<void> _deleteAllExpired() async {
-    final toDelete = widget.appointments.where(isExpired).toList();
-    if (toDelete.isEmpty) return;
+  Future<void> _attendAllExpired() async {
+    final toMark = widget.appointments.where(isExpired).toList();
+    if (toMark.isEmpty) return;
 
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Confirm'),
-        content: Text('Permanently delete ${toDelete.length} expired appointment(s)?'),
+        content: Text('Mark ${toMark.length} expired appointment(s) as attended?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton.icon(
-            icon: const Icon(Icons.delete_forever),
-            label: const Text('Delete All'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            icon: const Icon(Icons.done_all),
+            label: const Text('Attend All'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
@@ -142,39 +162,15 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
 
     if (ok != true) return;
 
-    setState(() => widget.appointments.removeWhere(isExpired));
+    setState(() {
+      for (final a in toMark) {
+        widget.appointments.remove(a);
+        widget.appointments.add(a.copyWith(attended: true));
+      }
+    });
     widget.onChanged?.call(List.from(widget.appointments));
     saveAppointments();
-    _showCoolSnackBar('${toDelete.length} expired appointment(s) deleted');
-  }
-
-  /* --------------------------------------------------------------- */
-  /* ---------------- single delete ------------------------------ */
-  /* --------------------------------------------------------------- */
-  Future<void> _deleteSingle(Appointment a) async {
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Delete “${a.name}”?'),
-        content: const Text('This action cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.delete),
-            label: const Text('Delete'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
-    );
-
-    if (ok != true) return;
-
-    setState(() => widget.appointments.remove(a));
-    widget.onChanged?.call(List.from(widget.appointments));
-    saveAppointments();
-    _showCoolSnackBar('${a.name} deleted');
+    _showCoolSnackBar('${toMark.length} expired appointment(s) attended');
   }
 
   /* --------------------------------------------------------------- */
@@ -187,13 +183,15 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
       return a.name.toLowerCase().contains(q) || a.reason.toLowerCase().contains(q);
     }).toList();
 
-    final todayList    = filtered.where(isToday).toList();
-    final upcomingList = filtered.where(isUpcoming).toList();
-    final expiredList  = filtered.where(isExpired).toList();
+    final todayList     = filtered.where(isToday).toList();
+    final expiredList   = filtered.where(isExpired).toList();
+    final upcomingList  = filtered.where(isUpcoming).toList();
+    final attendedList  = filtered.where(isAttended).toList();
 
-    final todayCount    = todayList.length;
-    final upcomingCount = upcomingList.length;
-    final expiredCount  = expiredList.length;
+    final todayCount     = todayList.length;
+    final expiredCount   = expiredList.length;
+    final upcomingCount  = upcomingList.length;
+    final attendedCount  = attendedList.length;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -270,6 +268,22 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
                                 const SizedBox(height: 12),
                               ],
 
+                              /* ---------------- EXPIRED -------------- */
+                              if (expiredList.isNotEmpty) ...[
+                                _sectionHeader(
+                                  'Expired ($expiredCount)',
+                                  Icons.event_busy,
+                                  trailing: TextButton.icon(
+                                    icon: const Icon(Icons.done_all, size: 18),
+                                    label: const Text('Attend All'),
+                                    style: TextButton.styleFrom(foregroundColor: Colors.teal),
+                                    onPressed: _attendAllExpired,
+                                  ),
+                                ),
+                                ...expiredList.map(_expiredCard),
+                                const SizedBox(height: 12),
+                              ],
+
                               /* ---------------- UPCOMING ------------- */
                               if (upcomingList.isNotEmpty) ...[
                                 _sectionHeader('Upcoming ($upcomingCount)', Icons.upcoming),
@@ -277,15 +291,11 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
                                 const SizedBox(height: 12),
                               ],
 
-                              /* ---------------- EXPIRED -------------- */
-                              if (expiredList.isNotEmpty) ...[
-                                _sectionHeader('Expired ($expiredCount)', Icons.event_busy,
-                                    trailing: TextButton.icon(
-                                      icon: const Icon(Icons.delete_sweep, size: 18),
-                                      label: const Text('Delete All'),
-                                      onPressed: _deleteAllExpired,
-                                    )),
-                                ...expiredList.map(_expiredCard),
+                              /* ---------------- ATTENDED ------------- */
+                              if (attendedList.isNotEmpty) ...[
+                                _sectionHeader('Attended ($attendedCount)', Icons.check_circle_outline),
+                                ...attendedList.map(_attendedCard),
+                                const SizedBox(height: 12),
                               ],
                             ],
                           ),
@@ -321,27 +331,40 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.calendar_month, color: Color(0xFF6366F1), size: 24),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('${a.date}  ${a.startTime} –${a.endTime}'),
-        trailing: ElevatedButton.icon(
-          icon: const Icon(Icons.check, size: 16),
-          label: const Text('Attend'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          onPressed: () => _markAttended(a),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(a.date, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+            Text('${a.startTime} – ${a.endTime}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.check, size: 16),
+              label: const Text('Attend'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => _markAttendedWithConfirm(a),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(6),
+              margin: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_forward_ios, size: 24, color: Colors.black54),
+            ),
+          ],
         ),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => ViewAppointmentPage(appointment: a)),
@@ -354,18 +377,16 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.calendar_month, color: Color(0xFF6366F1), size: 24),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('${a.date}  ${a.startTime} –${a.endTime}'),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(a.date, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+            Text('${a.startTime} – ${a.endTime}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+          ],
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 24, color: Colors.black54),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => ViewAppointmentPage(appointment: a)),
         ),
@@ -376,23 +397,65 @@ class _AllAppointmentsPageState extends State<AllAppointmentsPage> {
   Widget _expiredCard(Appointment a) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: Colors.grey.shade100,
+      color: Colors.red.shade50,
       child: ListTile(
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.event_busy, color: Colors.red.shade700, size: 24),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('${a.date}  ${a.startTime} –${a.endTime}'),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.red),
-          onPressed: () => _deleteSingle(a),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(a.date, style: TextStyle(fontSize: 14, color: Colors.red.shade700)),
+            Text('${a.startTime} – ${a.endTime}', style: TextStyle(fontSize: 13, color: Colors.red.shade600)),
+          ],
         ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.check, size: 16),
+              label: const Text('Attend'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => _markAttendedWithConfirm(a),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(6),
+              margin: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_forward_ios, size: 24, color: Colors.black54),
+            ),
+          ],
+        ),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ViewAppointmentPage(appointment: a)),
+        ),
+      ),
+    );
+  }
+
+  Widget _attendedCard(Appointment a) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: Colors.green.shade50,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(a.date, style: TextStyle(fontSize: 14, color: Colors.green.shade700)),
+            Text('${a.startTime} – ${a.endTime}', style: TextStyle(fontSize: 13, color: Colors.green.shade600)),
+          ],
+        ),
+        trailing: const Icon(Icons.check_circle, color: Colors.green),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => ViewAppointmentPage(appointment: a)),
         ),
