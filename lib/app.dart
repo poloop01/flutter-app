@@ -7,7 +7,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Modern CRUD App',
+      title: 'Dentista',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
