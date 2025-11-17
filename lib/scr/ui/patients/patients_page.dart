@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/appointment.dart';
 
-/// Appointment landing page with the same design language as ManagePage.
-/// Four big gradient buttons: Book a slot / My schedule / Reschedule / Cancel booking
-class AppointmentPage extends StatelessWidget {
+class ManagePage extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onSearch;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const AppointmentPage({
+  const ManagePage({
     super.key,
     required this.onAdd,
     required this.onSearch,
@@ -23,12 +20,12 @@ class AppointmentPage extends StatelessWidget {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
-          'Appointments',
+          'Manage Patient Data',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: LayoutBuilder(
-        builder: (_, constraints) {
+        builder: (context, constraints) {
           final isWide = constraints.maxWidth > 600;
           return SingleChildScrollView(
             child: Center(
@@ -39,17 +36,16 @@ class AppointmentPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _actionButton(
-                        context, 'Book new Appointment', Icons.event_available,
-                        Colors.teal, onAdd),
+                        context, 'New Patient Data', Icons.person_add_alt_1, Colors.teal, onAdd),
                     const SizedBox(height: 20),
-                    _actionButton(context, 'All Appointments', Icons.calendar_month,
-                        Colors.deepPurpleAccent, onSearch),
+                    _actionButton(
+                        context, 'Find Patient Data', Icons.search, Colors.deepPurpleAccent, onSearch),
                     const SizedBox(height: 20),
-                    _actionButton(context, 'Reschedule', Icons.schedule,
-                        Colors.orange, onEdit),
+                    _actionButton(
+                        context, 'Modify Patient Data', Icons.edit_note, Colors.orange, onEdit),
                     const SizedBox(height: 20),
-                    _actionButton(context, 'Cancel Appointment',
-                        Icons.event_busy, Colors.red, onDelete),
+                    _actionButton(
+                        context, 'Remove Patient Data', Icons.person_remove, Colors.red, onDelete),
                   ],
                 ),
               ),

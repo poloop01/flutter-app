@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'json_viewer_page.dart';
-import 'appointment_json_viewer.dart';
+import '../utilities/json_viewer_page.dart';
+import '../appointments/appointment_json_viewer.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

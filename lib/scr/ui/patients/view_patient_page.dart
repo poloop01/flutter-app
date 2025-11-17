@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:dots_indicator/dots_indicator.dart';
-import '../models/models.dart';
-import '../services/image_helper.dart';
+import '../../models/models.dart';
+import '../../services/image_helper.dart';
 
 class ViewUserPage extends StatefulWidget {
   final User user;

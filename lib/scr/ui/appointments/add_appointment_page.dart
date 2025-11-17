@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/appointment.dart';
+import '../../models/appointment.dart';
 
 class AddAppointmentPage extends StatefulWidget {
   final Function(Appointment) onSave;

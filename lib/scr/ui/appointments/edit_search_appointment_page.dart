@@ -1,29 +1,38 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import 'edit_user_page_view.dart';
+import '../../models/appointment.dart';
+import 'edit_appointment_page_view.dart'; // the single-record editor
 
-class EditOnlyPage extends StatefulWidget {
-  final List<User> users;
-  final Function(int, User) onUpdate;
-  const EditOnlyPage({super.key, required this.users, required this.onUpdate});
+/// Pen-only list for appointments.
+class EditOnlyAppointmentPage extends StatefulWidget {
+  final List<Appointment> appointments;
+  final Function(int, Appointment) onUpdate;
+
+  const EditOnlyAppointmentPage({
+    super.key,
+    required this.appointments,
+    required this.onUpdate,
+  });
 
   @override
-  State<EditOnlyPage> createState() => _EditOnlyPageState();
+  State<EditOnlyAppointmentPage> createState() =>
+      _EditOnlyAppointmentPageState();
 }
 
-class _EditOnlyPageState extends State<EditOnlyPage> {
+class _EditOnlyAppointmentPageState extends State<EditOnlyAppointmentPage> {
   String search = '';
 
   @override
   Widget build(BuildContext context) {
-    final filtered = widget.users
-        .where((u) => u.name.toLowerCase().contains(search.toLowerCase()))
-        .toList();
+    final filtered = widget.appointments.where((a) {
+      final q = search.toLowerCase();
+      return a.name.toLowerCase().contains(q) ||
+          a.reason.toLowerCase().contains(q);
+    }).toList();
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Edit Users',
+        title: const Text('Edit Appointments',
             style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: LayoutBuilder(
@@ -33,7 +42,8 @@ class _EditOnlyPageState extends State<EditOnlyPage> {
           final vPadding = isTablet ? 24.0 : 16.0;
           final maxContentWidth = isTablet ? 700.0 : double.infinity;
 
-          return Center(
+          return Align(
+            alignment: Alignment.topCenter, // horizontal centering only
             child: Container(
               width: maxContentWidth,
               padding: EdgeInsets.symmetric(
@@ -48,7 +58,7 @@ class _EditOnlyPageState extends State<EditOnlyPage> {
                     ),
                     child: TextField(
                       decoration: const InputDecoration(
-                        hintText: 'Search by name...',
+                        hintText: 'Search by name or reason...',
                         prefixIcon: Icon(Icons.search, color: Colors.grey),
                         border: InputBorder.none,
                         contentPadding:
@@ -66,12 +76,12 @@ class _EditOnlyPageState extends State<EditOnlyPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.edit_outlined,
+                                Icon(Icons.edit_calendar_outlined,
                                     size: 64, color: Colors.grey.shade400),
                                 const SizedBox(height: 16),
                                 Text(
-                                  widget.users.isEmpty
-                                      ? 'No users found'
+                                  widget.appointments.isEmpty
+                                      ? 'No appointments found'
                                       : 'No results for "$search"',
                                   style: TextStyle(
                                     fontSize: 18,
@@ -86,10 +96,9 @@ class _EditOnlyPageState extends State<EditOnlyPage> {
                             padding: EdgeInsets.zero,
                             itemCount: filtered.length,
                             itemBuilder: (_, index) {
-                              final user = filtered[index];
-                              final rem = user.visits.isEmpty
-                                  ? 0.0
-                                  : user.visits.last.remainingUSD;
+                              final appt = filtered[index];
+                              final realIndex =
+                                  widget.appointments.indexOf(appt);
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 child: ListTile(
@@ -107,14 +116,13 @@ class _EditOnlyPageState extends State<EditOnlyPage> {
                                       ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(Icons.person,
+                                    child: const Icon(Icons.calendar_month,
                                         color: Colors.white, size: 24),
                                   ),
-                                  title: Text(user.name,
+                                  title: Text(appt.name,
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600)),
-                                  subtitle: Text(
-                                      'Remaining: \$${rem.toStringAsFixed(2)}'),
+                                  subtitle: Text('${appt.date}  •  ${appt.reason}'),
                                   trailing: Container(
                                     width: 40,
                                     height: 40,
@@ -128,12 +136,11 @@ class _EditOnlyPageState extends State<EditOnlyPage> {
                                       onPressed: () =>
                                           Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) => EditUserPage(
-                                            user: user,
+                                          builder: (_) => EditAppointmentPage(
+                                            appointment: appt,
                                             onSave: (updated) {
                                               widget.onUpdate(
-                                                  widget.users.indexOf(user),
-                                                  updated);
+                                                  realIndex, updated);
                                               setState(() {});
                                             },
                                           ),

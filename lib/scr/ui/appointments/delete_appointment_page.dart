@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/appointment.dart';
+import '../../models/appointment.dart';
 
 class DeleteOnlyAppointmentPage extends StatefulWidget {
   final List<Appointment> appointments;

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
-import '../models/models.dart';
-import '../services/image_helper.dart';
+import '../../models/models.dart';
+import '../../services/image_helper.dart';
 
 /// Edit ONE visit inside a user – optional multi-image gallery.
 class EditUserPage extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import '../models/appointment.dart';
-import 'all_appointments_page.dart';
+import '../../models/models.dart';
+import '../../models/appointment.dart';
+import '../appointments/all_appointments_page.dart';
 
 class HomePage extends StatelessWidget {
   final List<User> users;

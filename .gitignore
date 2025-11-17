@@ -6,6 +6,9 @@
 .pub-cache/
 .pub/
 build/
+linux/
+macos/
+web/
 flutter_*.png
 linked_*.ds
 unlinked.ds

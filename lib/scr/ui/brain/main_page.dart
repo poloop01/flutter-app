@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import '../storage/storage.dart';
-import '../storage/appointment_storage.dart';
-import '../models/models.dart';
-import '../models/appointment.dart';
+import '../../storage/storage.dart';
+import '../../storage/appointment_storage.dart';
+import '../../models/models.dart';
+import '../../models/appointment.dart';
 
 /*  -----  user screens  -----  */
-import 'home_page.dart';
-import 'manage_page.dart';
-import 'add_user_page.dart';
-import 'edit_only_page.dart';
-import 'delete_only_page.dart';
-import 'view_user_page.dart';
-import 'settings_page.dart';
-import 'all_users.dart';
+import '../home/home_page.dart';
+import '../patients/patients_page.dart';
+import '../patients/add_patient_page.dart';
+import '../patients/edit_search_patient_page.dart';
+import '../patients/delete_patient_page.dart';
+import '../patients/view_patient_page.dart';
+import '../settings/settings_page.dart';
+import '../patients/all_patients_page.dart';
 
 /*  -----  appointment screens  -----  */
-import 'appointment_page.dart';               // four-button design
-import 'add_appointment_page.dart';
-import 'all_appointments_page.dart';          // renamed list page
-import 'edit_appointment_page.dart';
-import 'edit_only_appointment_page.dart';
-import 'delete_only_appointment_page.dart';
+import '../appointments/appointment_page.dart';
+import '../appointments/add_appointment_page.dart';
+import '../appointments/all_appointments_page.dart';
+import '../appointments/edit_appointment_page_view.dart';
+import '../appointments/edit_search_appointment_page.dart';
+import '../appointments/delete_appointment_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -228,7 +228,7 @@ void _goDeleteAppointment() =>
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined), label: 'Appointments'),
-          NavigationDestination(icon: Icon(Icons.build), label: 'Manage'),
+          NavigationDestination(icon: Icon(Icons.supervised_user_circle), label: 'Patients'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),

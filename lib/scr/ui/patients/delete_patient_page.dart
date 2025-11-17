@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import '../services/image_helper.dart';
+import '../../models/models.dart';
+import '../../services/image_helper.dart';
 
 /// Trash-only list: deletes user + all visit-images.
 class DeleteOnlyPage extends StatefulWidget {

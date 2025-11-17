@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../storage/appointment_storage.dart';
+import '../../storage/appointment_storage.dart';
 
 class AppointmentJsonViewerPage extends StatelessWidget {
   const AppointmentJsonViewerPage({super.key});
