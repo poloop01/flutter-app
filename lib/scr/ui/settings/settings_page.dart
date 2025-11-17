@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../utilities/json_viewer_page.dart';
 import '../appointments/appointment_json_viewer.dart';
+import '../../storage/patients_storage.dart';
+import '../../storage/appointment_storage.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -31,10 +33,20 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // _jsonBtn(context, 'Open Users JSON', Colors.blue, const JsonViewerPage()),
-                const SizedBox(height: 20),
-                _jsonBtn(context, 'Open Appointments JSON', Colors.blue, const AppointmentJsonViewerPage()),
-              ],
+  _jsonBtn(
+    context,
+    'Open Users JSON',
+    Colors.blue,
+    JsonViewerPage(file: PatientsStorage.jsonFile),          // ← provide file
+  ),
+  const SizedBox(height: 20),
+  _jsonBtn(
+    context,
+    'Open Appointments JSON',
+    Colors.blue,
+    JsonViewerPage(file: AppointmentStorage.jsonFile),       // ← provide file
+  ),
+],
             ),
           ),
           // Footer with "Developed by" text

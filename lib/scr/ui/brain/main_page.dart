@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-// import '../../storage/patients_storage.dart';
+import '../../storage/patients_storage.dart';
 import '../../storage/appointment_storage.dart';
-// import '../../models/patients.dart';
+import '../../models/patients.dart';        // <-- UN-COMMENTED, now exports Patient
 import '../../models/appointment.dart';
+
+// new imports for patients
+import '../patients/add_patient_new.dart'; // <-- NEW (already here, just used)
 
 /*  -----  user screens  -----  */
 import '../home/home_page.dart';
@@ -31,9 +34,9 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int currentIndex = 0;          // 0 Home, 1 Appointments, 2 Manage, 3 Settings
+  int currentIndex = 0; // 0 Home, 1 Appointments, 2 Manage, 3 Settings
 
-  // List<User> users = [];
+  List<Patient> patients = [];                 // WAS  List<User> users
   List<Appointment> appointments = [];
 
   /* ================================================================
@@ -46,19 +49,33 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _loadData() async {
-    // final loadedUsers = await Storage.loadUsers();
+    final loadedPatients   = await PatientsStorage.loadPatients(); // WAS loadUsers
     final loadedAppointments = await AppointmentStorage.load();
     setState(() {
-      // users = loadedUsers;
+      patients   = loadedPatients;         // WAS  users = loadedUsers
       appointments = loadedAppointments;
     });
   }
 
-  // Future<void> _saveUsers() async => Storage.saveUsers(users);
-  Future<void> _saveAppointments() async => AppointmentStorage.save(appointments);
+  Future<void> _savePatients() async =>     // WAS  _saveUsers
+      PatientsStorage.savePatients(patients);
+  Future<void> _saveAppointments() async =>
+      AppointmentStorage.save(appointments);
+
+  // <-- NEW (modal function already exported by add_patient_new.dart)
+  //   Future<void> showAddPatientModal(
+  //   BuildContext context, {
+  //   required void Function(List<User> updated) onSave,
+  // }) async {
+  //   await showModalBottomSheet<void>(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     builder: (_) => _AddPatientModal(onSave: onSave),
+  //   );
+  // }
 
   /* ================================================================
-   *                      U S E R   C R U D
+   *                      P A T I E N T   C R U D   (was USER)
    * ==============================================================*/
   // Future<void> _addUser(User u) async {
   //   users.add(u);
@@ -96,6 +113,15 @@ class _MainPageState extends State<MainPage> {
   /* ================================================================
    *                        V I S I T   S A V E
    * ==============================================================*/
+  void _goAddPatient() => showAddPatientModal(
+        context,
+        onSave: (updated) async {
+          patients = updated;                    // WAS  users = updated.cast<User>
+          await _savePatients();                 // WAS  _saveUsers
+          setState(() {});
+        },
+      );
+
   // void _handleSave(Visit v, String name, User? existing) {
   //   if (existing != null) {
   //     users[users.indexOf(existing)].visits.add(v);
@@ -123,7 +149,7 @@ class _MainPageState extends State<MainPage> {
   /* ================================================================
    *                        N A V I G A T I O N
    * ==============================================================*/
-  /* ---------------  USER  --------------- */
+  /* ---------------  PATIENT  (was USER)  --------------- */
   // void _goAddUser() => Navigator.of(context).push(
   //       MaterialPageRoute(
   //         builder: (_) => AddUserPage(users: users, onSave: _handleSave),
@@ -161,19 +187,18 @@ class _MainPageState extends State<MainPage> {
         ),
       );
 
-void _goSearchAppointment() =>
-    Navigator.of(context).push<List<Appointment>>(
-      MaterialPageRoute(
-        builder: (_) => AllAppointmentsPage(
-          appointments: appointments,
-          onChanged: (updated) async {
-            appointments = updated;
-            await AppointmentStorage.save(appointments); // use the same helper
-            setState(() {});
-          },
+  void _goSearchAppointment() => Navigator.of(context).push<List<Appointment>>(
+        MaterialPageRoute(
+          builder: (_) => AllAppointmentsPage(
+            appointments: appointments,
+            onChanged: (updated) async {
+              appointments = updated;
+              await AppointmentStorage.save(appointments);
+              setState(() {});
+            },
+          ),
         ),
-      ),
-    );
+      );
 
   void _goEditAppointment() => Navigator.of(context).push(
         MaterialPageRoute(
@@ -184,19 +209,18 @@ void _goSearchAppointment() =>
         ),
       );
 
-void _goDeleteAppointment() =>
-    Navigator.of(context).push<List<Appointment>>(
-      MaterialPageRoute(
-        builder: (_) => DeleteOnlyAppointmentPage(
-          appointments: appointments,
-          onChanged: (updated) async {   // updated list comes back here
-            appointments = updated;
-            await AppointmentStorage.save(appointments); // write to JSON
-            setState(() {});
-          },
+  void _goDeleteAppointment() => Navigator.of(context).push<List<Appointment>>(
+        MaterialPageRoute(
+          builder: (_) => DeleteOnlyAppointmentPage(
+            appointments: appointments,
+            onChanged: (updated) async {
+              appointments = updated;
+              await AppointmentStorage.save(appointments);
+              setState(() {});
+            },
+          ),
         ),
-      ),
-    );
+      );
 
   /* ================================================================
    *                           B U I L D
@@ -204,19 +228,24 @@ void _goDeleteAppointment() =>
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(/*users: users,*/ appointments: appointments,),
-      AppointmentPage(          // four-button design
+      HomePage(
+        appointments: appointments,
+      ),
+      AppointmentPage(
         onAdd: _goAddAppointment,
         onSearch: _goSearchAppointment,
         onEdit: _goEditAppointment,
         onDelete: _goDeleteAppointment,
       ),
-      // ManagePage(
-      //   onAdd: _goAddUser,
-      //   onSearch: _goSearchUser,
-      //   onEdit: _goEditUser,
-      //   onDelete: _goDeleteUser,
-      // ),
+      Scaffold(
+        appBar: AppBar(title: const Text('Patients')),
+        body: const Center(child: Text('Patient list coming soon…')),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _goAddPatient,
+          tooltip: 'Add patient',
+          child: const Icon(Icons.person_add),
+        ),
+      ),
       const SettingsPage(),
     ];
 
@@ -227,9 +256,8 @@ void _goDeleteAppointment() =>
         onDestinationSelected: (i) => setState(() => currentIndex = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined), label: 'Appointments'),
-          // NavigationDestination(icon: Icon(Icons.supervised_user_circle), label: 'Patients'),
+          NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'Appointments'),
+          NavigationDestination(icon: Icon(Icons.supervised_user_circle), label: 'Patients'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),

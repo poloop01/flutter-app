@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../storage/appointment_storage.dart';
+import 'dart:io';
 
 class JsonViewerPage extends StatelessWidget {
-  const JsonViewerPage({super.key});
+  const JsonViewerPage({super.key, required this.file});
 
-  Future<String> _load() async => await AppointmentStorage.jsonFile.readAsString();
+  final File file;
+
+  Future<String> _load() async => file.readAsString();
 
   Future<void> _copy(BuildContext context) async {
     final text = await _load();
