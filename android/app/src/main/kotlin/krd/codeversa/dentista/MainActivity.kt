@@ -1,4 +1,4 @@
-package com.example.flutter_application_1
+package krd.codeversa.dentista
 
 import io.flutter.embedding.android.FlutterActivity
 
