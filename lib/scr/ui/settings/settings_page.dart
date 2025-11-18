@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../utilities/json_viewer_page.dart';
+import '../patients/patients_json_viewer.dart';
 import '../appointments/appointment_json_viewer.dart';
-import '../../storage/patients_storage.dart';
-import '../../storage/appointment_storage.dart';
+
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -33,20 +32,20 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-  _jsonBtn(
-    context,
-    'Open Users JSON',
-    Colors.blue,
-    JsonViewerPage(file: PatientsStorage.jsonFile),          // ← provide file
-  ),
-  const SizedBox(height: 20),
-  _jsonBtn(
-    context,
-    'Open Appointments JSON',
-    Colors.blue,
-    JsonViewerPage(file: AppointmentStorage.jsonFile),       // ← provide file
-  ),
-],
+                _jsonBtn(
+                  context,
+                  'Open Patients JSON',  // Changed from 'Users' to 'Patients'
+                  Colors.blue,
+                  const PatientsJsonViewerPage(),  // Use hardcoded patients viewer
+                ),
+                const SizedBox(height: 20),
+                _jsonBtn(
+                  context,
+                  'Open Appointments JSON',
+                  Colors.green,  // Different color for distinction
+                  const AppointmentJsonViewerPage(),  // Use hardcoded appointments viewer
+                ),
+              ],
             ),
           ),
           // Footer with "Developed by" text
@@ -55,9 +54,9 @@ class SettingsPage extends StatelessWidget {
             right: 0,
             bottom: 0,
             child: Container(
-              width: double.infinity, // 100% width
-              height: 50, // Small height for the footer
-              color: const Color.fromARGB(255, 192, 141, 21), // Darker background for contrast
+              width: double.infinity,
+              height: 50,
+              color: const Color.fromARGB(255, 192, 141, 21),
               child: const Center(
                 child: Text(
                   'Developed by Genius',

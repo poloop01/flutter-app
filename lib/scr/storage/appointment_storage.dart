@@ -12,9 +12,9 @@ class AppointmentStorage {
    * 1.  bootstrap – creates folder AND empty file if missing
    * ---------------------------------------------------------- */
   static Future<void> init() async {
-    final root = await getApplicationDocumentsDirectory();
+    final root = await getExternalStorageDirectory();
 
-    _jsonDir = Directory('${root.path}/data');
+    _jsonDir = Directory('${root!.path}/data');
     await _jsonDir.create(recursive: true);
 
     _file = File('${_jsonDir.path}/appointments.json');

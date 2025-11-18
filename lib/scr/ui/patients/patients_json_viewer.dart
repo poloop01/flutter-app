@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
+import '../../storage/patients_storage.dart';
 
-class JsonViewerPage extends StatelessWidget {
-  const JsonViewerPage({super.key, required this.file});
+class PatientsJsonViewerPage extends StatelessWidget {
+  const PatientsJsonViewerPage({super.key});
 
-  final File file;
-
-  Future<String> _load() async => file.readAsString();
+  Future<String> _load() async => await PatientsStorage.jsonFile.readAsString();
 
   Future<void> _copy(BuildContext context) async {
     final text = await _load();
@@ -15,7 +13,7 @@ class JsonViewerPage extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('JSON copied to clipboard'),
+        content: const Text('Patients JSON copied to clipboard'),
         backgroundColor: Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -29,7 +27,7 @@ class JsonViewerPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('JSON File', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Patients JSON', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.copy, color: Colors.indigo),

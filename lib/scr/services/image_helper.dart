@@ -6,24 +6,35 @@ import 'package:uuid/uuid.dart';
 class ImageHelper {
   static late Directory _dir;
 
-  static void init(Directory imgDir) => _dir = imgDir;
+  /// Initialize with the directory where images will be stored
+  static void init(Directory imgDir) {
+    _dir = imgDir;
+  }
 
-  /// saves bytes → returns file name only
-  static Future<String> save(Uint8List bytes,
-      {required String userId, required int visitIndex}) async {
-    final name = '${userId}_v${visitIndex}_${const Uuid().v4()}.jpg';
+  /// Saves image bytes to disk and returns the generated file name.
+  /// Uses patientId and visitId for stable, unique naming.
+  static Future<String> save(Uint8List bytes, {
+    required String patientId,
+    required String visitId,
+  }) async {
+    // Generate a unique filename: {patientId}_{visitId}_{randomUUID}.jpg
+    final name = '${patientId}_$visitId}_${Uuid().v4()}.jpg';
     final file = File(p.join(_dir.path, name));
     await file.writeAsBytes(bytes, flush: true);
     return name;
   }
 
+
   static Future<void> delete(String name) async {
-    final f = File(p.join(_dir.path, name));
-    if (await f.exists()) await f.delete();
+    final file = File(p.join(_dir.path, name));
+    if (await file.exists()) {
+      await file.delete();
+    }
   }
 
+  /// Loads image bytes by filename, returns null if not found
   static Future<Uint8List?> load(String name) async {
-    final f = File(p.join(_dir.path, name));
-    return await f.exists() ? f.readAsBytes() : null;
+    final file = File(p.join(_dir.path, name));
+    return await file.exists() ? await file.readAsBytes() : null;
   }
 }
