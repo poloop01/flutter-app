@@ -18,6 +18,7 @@ dependencies:
   path: ^1.8.3
   dots_indicator: ^3.0.0
   flutter_launcher_icons: ^0.14.3
+  photo_view: ^0.15.0
 
 dev_dependencies:
   flutter_test:

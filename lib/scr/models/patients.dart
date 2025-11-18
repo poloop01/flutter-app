@@ -144,10 +144,12 @@ class Patient {
     String? id,
     required this.name,
     this.phone = '',
-    this.createdAt = '',
-    this.updatedAt = '',
+    String? createdAt,
+    String? updatedAt,
     this.cases = const [],
-  }) : id = id ?? const Uuid().v4();
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now().toIso8601String(),
+        updatedAt = updatedAt ?? DateTime.now().toIso8601String();
 
   factory Patient.fromJson(Map<String, dynamic> j) => Patient(
         id: j['id'] ?? const Uuid().v4(),
@@ -169,4 +171,24 @@ class Patient {
         'updated_at': updatedAt,
         'cases': cases.map((c) => c.toJson()).toList(),
       };
+
+  /// Creates a copy of this patient with optional field overrides
+  /// Automatically updates the [updatedAt] timestamp to current time
+  Patient copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? createdAt,
+    String? updatedAt,
+    List<Case>? cases,
+  }) {
+    return Patient(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now().toIso8601String(),
+      cases: cases ?? this.cases,
+    );
+  }
 }
