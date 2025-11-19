@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/patients.dart';
 import 'add_visit.dart';
+import 'visit.dart';
 
 class VisitPage extends StatefulWidget {
   final Patient patient;
@@ -60,17 +61,50 @@ class _VisitPageState extends State<VisitPage> {
         elevation: 0,
         title: Text(currentCase.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(72),
+          preferredSize: const Size.fromHeight(95),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [const Icon(Icons.person, size: 16), const SizedBox(width: 6), Text(widget.patient.name, style: const TextStyle(color: Colors.white70, fontSize: 14))]),
-                const SizedBox(height: 4),
-                Row(children: [const Icon(Icons.phone, size: 14), const SizedBox(width: 6), Text(widget.patient.phone, style: const TextStyle(color: Colors.white70, fontSize: 13))]),
-                const SizedBox(height: 4),
-                Row(children: [const Icon(Icons.event, size: 14), const SizedBox(width: 6), Text('Case: ${DateFormat('dd MMM yyyy').format(DateTime.parse(currentCase.caseDate))}', style: const TextStyle(color: Colors.white70, fontSize: 13))]),
+                Row(
+                  children: [
+                    const Icon(Icons.person, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.patient.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.phone, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.patient.phone.isEmpty ? '–' : widget.patient.phone,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.event, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      DateFormat('dd MMM yyyy').format(DateTime.parse(currentCase.caseDate)),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -79,8 +113,8 @@ class _VisitPageState extends State<VisitPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddVisit,
         backgroundColor: const Color(0xFF667EEA),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Visit', style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add Visit', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
       ),
       body: RefreshIndicator(
         onRefresh: () async => setState(() {}),
@@ -141,53 +175,71 @@ class _VisitPageState extends State<VisitPage> {
   }
 
   Widget _buildVisitCard(Visit visit) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 6))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Date only (no paid badge)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF667EEA),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(18), topRight: Radius.circular(18)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Text(DateFormat('dd MMM yyyy').format(DateTime.parse(visit.date)), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VisitDetailsPage(
+              patient: widget.patient,
+              currentCase: currentCase,
+              visit: visit,
+              onVisitUpdated: (updatedCase) {
+                setState(() => currentCase = updatedCase);
+                widget.onCaseUpdated(updatedCase);
+              },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _infoRow(Icons.sick, 'Illness', visit.illness.isEmpty ? '–' : visit.illness),
-                const SizedBox(height: 12),
-                _infoRow(Icons.coronavirus, 'Teeth Issue', visit.teethIllness.isEmpty ? '–' : visit.teethIllness),
-                const SizedBox(height: 16),
-                // single line money info
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Total: \$${visit.totalUsd.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text('Paid: \$${visit.paidUsd.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text('Remaining: \$${visit.remainingUsd.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w600, color: visit.remainingUsd > 0 ? Colors.orange : Colors.green)),
-                  ],
-                ),
-              ],
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 6))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF667EEA),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(18), topRight: Radius.circular(18)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text(DateFormat('dd MMM yyyy').format(DateTime.parse(visit.date)), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _infoRow(Icons.coronavirus, 'Teeth Issue', visit.teethIllness.isEmpty ? '–' : visit.teethIllness),
+                  const SizedBox(height: 12),
+                  _infoRow(Icons.healing, 'Treatment', visit.whatWasDone.isEmpty ? '–' : visit.whatWasDone),
+                  const SizedBox(height: 16),
+                  // single line money info
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Total: \$${visit.totalUsd.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('Paid: \$${visit.paidUsd.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('Remaining: \$${visit.remainingUsd.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w600, color: visit.remainingUsd > 0 ? Colors.orange : Colors.green)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

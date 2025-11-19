@@ -259,7 +259,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
               children: [
                 _buildDatePicker(),
                 const SizedBox(height: 16),
-                _buildTextField('Teeth Illness', _teethIllnessController, hint: 'e.g. Caries #18, Gingivitis', maxLines: 3),
+                _buildTextField('Teeth Illness', _teethIllnessController, maxLines: 3),
                 const SizedBox(height: 16),
                 _buildTextField('Other Illnesses / Complaint', _illnessController, maxLines: 3),
                 const SizedBox(height: 16),

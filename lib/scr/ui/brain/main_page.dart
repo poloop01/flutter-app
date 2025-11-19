@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../storage/patients_storage.dart';
 import '../../storage/appointment_storage.dart';
@@ -83,19 +84,43 @@ class _MainPageState extends State<MainPage> {
     setState(() {});
   }
 
-Future<void> _updatePatient(Patient oldPatient, String name, String phone) async {
-  final index = patients.indexWhere((e) => e.id == oldPatient.id);
-  if (index != -1) {
-    patients[index] = oldPatient.copyWith(name: name, phone: phone);
-    await _savePatients();
-    setState(() {});
+  Future<void> _updatePatient(Patient oldPatient, String name, String phone) async {
+    final index = patients.indexWhere((e) => e.id == oldPatient.id);
+    if (index != -1) {
+      patients[index] = oldPatient.copyWith(name: name, phone: phone);
+      await _savePatients();
+      setState(() {});
+    }
   }
-}
 
+  /// Delete patient and all associated images
   Future<void> _deletePatient(Patient p) async {
+    // Delete all images from all visits in all cases
+    for (final caseItem in p.cases) {
+      for (final visit in caseItem.visits) {
+        for (final imageName in visit.imageNames) {
+          await _deleteImageFile(imageName);
+        }
+      }
+    }
+    
+    // Remove patient from list
     patients.removeWhere((e) => e.id == p.id);
     await _savePatients();
     setState(() {});
+  }
+
+  /// Delete a single image file from disk
+  Future<void> _deleteImageFile(String imageName) async {
+    try {
+      final imgDir = PatientsStorage.imgDir;
+      final file = File('${imgDir.path}/$imageName');
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      print('Error deleting image: $e');
+    }
   }
 
   /* ---------------------------------------------------------
@@ -268,108 +293,108 @@ Future<void> _updatePatient(Patient oldPatient, String name, String phone) async
                     itemCount: filteredPatients.length,
                     itemBuilder: (_, i) {
                       final p = filteredPatients[i];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    leading: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(Icons.person, color: Colors.blue),
-                      ),
-                    ),
-                    title: Text(
-                      p.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      p.phone.isEmpty ? 'No phone' : p.phone,
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => CasesPage(
-                            patient: p,
-                            onPatientUpdated: (updatedPatient) {
-                              setState(() {
-                                final index = patients.indexWhere((pat) => pat.id == updatedPatient.id);
-                                if (index != -1) {
-                                  patients[index] = updatedPatient;
-                                }
-                              });
-                              _savePatients();
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          leading: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.person, color: Colors.blue),
+                            ),
+                          ),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            p.phone.isEmpty ? 'No phone' : p.phone,
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => CasesPage(
+                                  patient: p,
+                                  onPatientUpdated: (updatedPatient) {
+                                    setState(() {
+                                      final index = patients.indexWhere((pat) => pat.id == updatedPatient.id);
+                                      if (index != -1) {
+                                        patients[index] = updatedPatient;
+                                      }
+                                    });
+                                    _savePatients();
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'view') {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => CasesPage(
+                                      patient: p,
+                                      onPatientUpdated: (updatedPatient) {
+                                        setState(() {
+                                          final index = patients.indexWhere((pat) => pat.id == updatedPatient.id);
+                                          if (index != -1) {
+                                            patients[index] = updatedPatient;
+                                          }
+                                        });
+                                        _savePatients();
+                                      },
+                                    ),
+                                  ),
+                                );
+                              } else if (value == 'edit') {
+                                _showEditPatientModal(p);
+                              } else if (value == 'delete') {
+                                _showDeleteConfirmation(p);
+                              }
                             },
+                            itemBuilder: (BuildContext context) => [
+                              const PopupMenuItem(
+                                value: 'view',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.visibility_outlined, size: 20),
+                                    SizedBox(width: 12),
+                                    Text('View Cases'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_outlined, size: 20),
+                                    SizedBox(width: 12),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    SizedBox(width: 12),
+                                    Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
                     },
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'view') {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => CasesPage(
-                                patient: p,
-                                onPatientUpdated: (updatedPatient) {
-                                  setState(() {
-                                    final index = patients.indexWhere((pat) => pat.id == updatedPatient.id);
-                                    if (index != -1) {
-                                      patients[index] = updatedPatient;
-                                    }
-                                  });
-                                  _savePatients();
-                                },
-                              ),
-                            ),
-                          );
-                        } else if (value == 'edit') {
-                          _showEditPatientModal(p);
-                        } else if (value == 'delete') {
-                          _showDeleteConfirmation(p);
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem(
-                          value: 'view',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility_outlined, size: 20),
-                              SizedBox(width: 12),
-                              Text('View Cases'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 20),
-                              SizedBox(width: 12),
-                              Text('Edit'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                              SizedBox(width: 12),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
